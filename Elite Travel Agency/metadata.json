@@ -1,0 +1,6 @@
+{
+  "name": "Elite Travel Agency",
+  "description": "A high-end, futuristic dark-themed website for Elite Travel Agency featuring premium travel packages, neon styling, custom booking interfaces, and sleek page animations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

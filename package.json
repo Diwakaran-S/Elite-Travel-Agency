@@ -1,0 +1,23 @@
+{
+  "name": "elite-travel-agency",
+  "version": "1.0.0",
+  "description": "Elite Travel AI Platform — Luxury travel SaaS with AI concierge powered by Llama 3.1",
+  "main": "server/server.js",
+  "scripts": {
+    "build": "cd \"Elite Travel Agency\" && npm install && npm run build",
+    "start": "node server/server.js",
+    "install:all": "npm install && cd server && npm install && cd ../\"Elite Travel Agency\" && npm install",
+    "dev:server": "cd server && node server.js",
+    "dev:client": "cd \"Elite Travel Agency\" && npm run dev"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "openai": "^4.57.0",
+    "puppeteer": "^25.1.0"
+  }
+}
