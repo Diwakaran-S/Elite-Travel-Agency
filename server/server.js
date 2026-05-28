@@ -29,14 +29,13 @@ if (fs.existsSync(reactDist)) {
 }
 
 // ── AI Chat API ───────────────────────────────────────────
-// NOTE: OpenAI client is created PER REQUEST so a missing API key
-// does not crash the server on startup.
+// OpenAI client is created per-request so a missing key never crashes startup
 app.post('/chat', async (req, res) => {
     const apiKey = process.env.NVIDIA_API_KEY;
     if (!apiKey) {
         console.error('[Chat] NVIDIA_API_KEY is not set!');
         return res.status(503).json({
-            error: 'AI service is not configured. The API key is missing on the server.',
+            error: 'AI service not configured. NVIDIA_API_KEY is missing on the server.',
         });
     }
 
@@ -47,25 +46,25 @@ app.post('/chat', async (req, res) => {
             return res.status(400).json({ error: 'Message is required.' });
         }
 
-        // Limit input size to prevent token overflow (~2000 chars ≈ 500 tokens)
+        // Cap input to prevent token overflow
         const trimmedMessage = message.trim().slice(0, 2000);
 
         const messages = [
             { role: 'system', content: systemPrompt },
         ];
 
-        // Optional: enrich with live web search
+        // Optionally enrich with live web search (non-fatal)
         if (isTravelQuery(trimmedMessage)) {
-            console.log(`[Search] Travel query: "${trimmedMessage.slice(0, 60)}..."`);
+            console.log(`[Search] Travel query: "${trimmedMessage.slice(0, 60)}"`);
             try {
                 const liveResults = await Promise.race([
                     puppeteerSearch(trimmedMessage),
                     new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000)),
                 ]);
                 if (liveResults) {
-                    // Hard-cap search context at 3000 chars to stay under token limit
+                    // Hard-cap at 3000 chars (~750 tokens) to stay under 64K context limit
                     messages.push({ role: 'system', content: liveResults.slice(0, 3000) });
-                    console.log('[Search] Live results added.');
+                    console.log('[Search] Live results injected.');
                 }
             } catch (e) {
                 console.warn('[Search] Skipped:', e.message);
@@ -74,7 +73,6 @@ app.post('/chat', async (req, res) => {
 
         messages.push({ role: 'user', content: trimmedMessage });
 
-        // Create OpenAI client inside the handler (never crashes at startup)
         const openaiClient = new OpenAI({
             apiKey,
             baseURL: 'https://integrate.api.nvidia.com/v1',
@@ -85,7 +83,6 @@ app.post('/chat', async (req, res) => {
             messages,
             temperature: 0.7,
             max_tokens: 600,
-            top_p: 0.9,
         });
 
         const reply = completion.choices?.[0]?.message?.content;
@@ -96,15 +93,15 @@ app.post('/chat', async (req, res) => {
         res.json({ reply });
 
     } catch (error) {
-        const status  = error?.status || 500;
-        const errMsg  = error?.error?.message || error?.message || '';
+        const status = error?.status || 500;
+        const errMsg = error?.error?.message || error?.message || '';
         console.error(`[Chat] Error ${status}:`, errMsg);
 
         let userMessage = 'Something went wrong. Please try again.';
-        if (status === 401 || status === 403) userMessage = 'Invalid or missing API key. Contact support.';
-        else if (status === 429)              userMessage = 'Too many requests — please wait and try again.';
-        else if (status === 404)              userMessage = 'AI model not found. Contact support.';
-        else if (errMsg.toLowerCase().includes('token')) userMessage = 'Message too long. Please shorten it and try again.';
+        if (status === 401 || status === 403) userMessage = 'Invalid API key. Please check your NVIDIA_API_KEY on Render.';
+        else if (status === 429)             userMessage = 'Too many requests — please wait a moment and try again.';
+        else if (status === 404)             userMessage = 'AI model not found. Contact support.';
+        else if (errMsg.toLowerCase().includes('token')) userMessage = 'Your message is too long. Please shorten it.';
 
         res.status(status).json({ error: userMessage });
     }
@@ -118,8 +115,8 @@ app.get('*', (_req, res) => {
     } else {
         res.status(200).send(`
             <html><body style="background:#0a0a0f;color:#00f0ff;font-family:monospace;padding:40px;text-align:center">
-                <h2>Elite Travel Agency — Server is Running</h2>
-                <p>Frontend build not found. The React app may not have built yet.</p>
+                <h2>Elite Travel Agency — Server Running</h2>
+                <p>Frontend build not found. Please trigger a redeploy on Render.</p>
                 <p><a href="/health" style="color:#9200e6">/health</a> &nbsp;
                    <a href="/agent"  style="color:#9200e6">/agent (AI Chat)</a></p>
             </body></html>
@@ -131,8 +128,7 @@ app.get('*', (_req, res) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n[Server] ✓ Running on port ${PORT}`);
-    console.log(`[Server] NODE_ENV          : ${process.env.NODE_ENV || 'not set'}`);
+    console.log(`[Server] NODE_ENV          : ${process.env.NODE_ENV || 'development'}`);
     console.log(`[Server] NVIDIA_API_KEY set: ${!!process.env.NVIDIA_API_KEY}`);
-    console.log(`[Server] React dist exists : ${fs.existsSync(reactDist)}`);
-    console.log(`[Server] React dist path   : ${reactDist}\n`);
+    console.log(`[Server] React dist exists : ${fs.existsSync(reactDist)}\n`);
 });
