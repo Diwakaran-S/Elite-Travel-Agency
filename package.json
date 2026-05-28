@@ -4,14 +4,12 @@
   "description": "Elite Travel AI Platform — Luxury travel SaaS with AI concierge powered by Llama 3.1",
   "main": "server/server.js",
   "scripts": {
-    "build": "cd \"Elite Travel Agency\" && npm install && npm run build",
-    "start": "node server/server.js",
-    "install:all": "npm install && cd server && npm install && cd ../\"Elite Travel Agency\" && npm install",
-    "dev:server": "cd server && node server.js",
-    "dev:client": "cd \"Elite Travel Agency\" && npm run dev"
+    "build": "npm install --prefix server && npm install --prefix \"Elite Travel Agency\" && npm run build --prefix \"Elite Travel Agency\"",
+    "start": "node server/server.js"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   },
   "dependencies": {
     "cors": "^2.8.5",
